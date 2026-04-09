@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mawimbi Hotspot + Voucher</title>
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="expires" content="-1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <h1>Mawimbi Hotspot</h1>
+
+  <!-- MAC/IP now come from the query string, not MikroTik placeholders -->
+  <p id="clientInfo"></p>
+
+  <h2>Manual Login</h2>
+  <form id="mkManualForm" method="post">
+    <label>Username: <input type="text" name="username"></label><br><br>
+    <label>Password: <input type="password" name="password"></label><br><br>
+    <input type="hidden" name="dst" id="mkDst">
+    <input type="hidden" name="popup" value="true">
+    <button type="submit">Login</button>
+  </form>
+
+  <hr>
+
+  <h2>Voucher Login</h2>
+  <p>Enter voucher (+ optional phone), then we call the API and auto-login.</p>
+
+  <label>Voucher code:
+    <input type="text" id="voucherCode">
+  </label><br><br>
+
+  <label>Phone number (optional):
+    <input type="text" id="voucherPhone">
+  </label><br><br>
+
+  <button id="voucherButton" type="button">Connect with Voucher</button>
+
+  <p id="status"></p>
+
+  <!-- Hidden Mikrotik login form (for auto-login after voucher OK) -->
+  <form id="mkLogin" method="post" style="display:none;">
+    <input type="hidden" name="username" id="mkUser">
+    <input type="hidden" name="password" id="mkPass">
+    <input type="hidden" name="dst" id="mkDstHidden">
+    <input type="hidden" name="popup" value="true">
+  </form>
+
+  <script>
+  (function() {
+    function qs(name) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name) || '';
+    }
+
+    var mac = qs('mac');
+    var ip  = qs('ip');
+    var dst = qs('dst') || '';
+
+    var clientInfo = document.getElementById('clientInfo');
+    if (clientInfo) {
+      clientInfo.textContent = 'MAC: ' + mac + '  IP: ' + ip;
+    }
+
+    // Set Mikrotik login action and dst if you pass link-login-only/link-orig as query params
+    var mkLoginForm   = document.getElementById('mkLogin');
+    var mkManualForm  = document.getElementById('mkManualForm');
+    var mkDst         = document.getElementById('mkDst');
+    var mkDstHidden   = document.getElementById('mkDstHidden');
+
+    // If MikroTik passes link-login-only and link-orig as query params, set them here:
+    var linkLoginOnly = qs('link-login-only');
+    var linkOrig      = qs('link-orig');
+
+    if (mkLoginForm && linkLoginOnly) {
+      mkLoginForm.action = linkLoginOnly;
+    }
+    if (mkManualForm && linkLoginOnly) {
+      mkManualForm.action = linkLoginOnly;
+    }
+    if (mkDst && linkOrig) {
+      mkDst.value = linkOrig;
+    }
+    if (mkDstHidden && linkOrig) {
+      mkDstHidden.value = linkOrig;
+    }
+
+    var statusEl = document.getElementById('status');
+
+    function show(msg) {
+      if (statusEl) statusEl.textContent = msg;
+    }
+
+    var btn = document.getElementById('voucherButton');
+    if (!btn) {
+      console.error('voucherButton not found');
+      return;
+    }
+
+    btn.addEventListener('click', function() {
+      var code  = (document.getElementById('voucherCode').value || '').trim().toUpperCase();
+      var phone = (document.getElementById('voucherPhone').value || '').trim();
+
+      console.log('voucher click: code=', code, 'phone=', phone);
+
+      if (!code) { show('Enter voucher code.'); return; }
+
+      show('Checking voucher…');
+
+      fetch('/api/mb/v1/voucher/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          voucher_code: code,
+          phone: phone || null,
+          mac_address: mac,
+          ip_address: ip,
+          router_id: 1
+        })
+      })
+      .then(function(r) {
+        return r.json();
+      })
+      .then(function(data) {
+        console.log('voucher response:', data);
+
+        if (!data.ok) {
+          if (data.reason === 'expired') {
+            show('This voucher has expired. Please purchase a new voucher.');
+          } else if (data.reason === 'used') {
+            show('This voucher has already been used. Please purchase a new voucher.');
+          } else if (data.reason === 'not_found') {
+            show('Voucher not found. Check the code and try again.');
+          } else {
+            show('Voucher error: ' + (data.message || data.reason || 'unknown'));
+          }
+          return;
+        }
+
+        show('Voucher accepted, logging in…');
+
+        var mkUser  = document.getElementById('mkUser');
+        var mkPass  = document.getElementById('mkPass');
+
+        if (!mkUser || !mkPass || !mkLoginForm) {
+          show('Missing Mikrotik login form.');
+          return;
+        }
+
+        mkUser.value = data.mk_user || code;
+        mkPass.value = data.mk_pass || code;
+
+        console.log('logging in with:', mkUser.value, mkPass.value);
+
+        mkLoginForm.submit();
+      })
+      .catch(function(err) {
+        console.error('voucher fetch error:', err);
+        show('Network error redeeming voucher. Please try again.');
+      });
+    });
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+[90m= [39m[34;4mApp\Models\Payment[39;24m {#8557
+    [34mid[39m: [35m49[39m,
+    [34mrouter_id[39m: [35m1[39m,
+    [34mvoucher_id[39m: [35m51[39m,
+    [34mprovider[39m: [32m"[39m[32mmpesa[39m[32m"[39m,
+    [34mreference[39m: [32m"[39m[32mUD8F50EEJR[39m[32m"[39m,
+    [34mvoucher_code[39m: [32m"[39m[32mJSEP4X9R[39m[32m"[39m,
+    [34mphone[39m: [32m"[39m[32m254716794826[39m[32m"[39m,
+    [34mamount[39m: [32m"[39m[32m10.00[39m[32m"[39m,
+    [34mstatus[39m: [32m"[39m[32msuccessful[39m[32m"[39m,
+    [34mresult_description[39m: [32m"[39m[32mThe service request is processed successfully.[39m[32m"[39m,
+    [34mpayload[39m: [32m"[39m[32m{[39m\"[32mBody[39m\"[32m:{[39m\"[32mstkCallback[39m\"[32m:{[39m\"[32mMerchantRequestID[39m\"[32m:[39m\"[32m5ed1-4ef6-8397-45e90575ca1c28153[39m\"[32m,[39m\"[32mCheckoutRequestID[39m\"[32m:[39m\"[32mws_CO_08042026210930815716794826[39m\"[32m,[39m\"[32mResultCode[39m\"[32m:0,[39m\"[32mResultDesc[39m\"[32m:[39m\"[32mThe service request is processed successfully.[39m\"[32m,[39m\"[32mCallbackMetadata[39m\"[32m:{[39m\"[32mItem[39m\"[32m:[{[39m\"[32mName[39m\"[32m:[39m\"[32mAmount[39m\"[32m,[39m\"[32mValue[39m\"[32m:10},{[39m\"[32mName[39m\"[32m:[39m\"[32mMpesaReceiptNumber[39m\"[32m,[39m\"[32mValue[39m\"[32m:[39m\"[32mUD8F50EEJR[39m\"[32m},{[39m\"[32mName[39m\"[32m:[39m\"[32mBalance[39m\"[32m,[39m\"[32mValue[39m\"[32m:0},{[39m\"[32mName[39m\"[32m:[39m\"[32mTransactionDate[39m\"[32m,[39m\"[32mValue[39m\"[32m:20260408210941},{[39m\"[32mName[39m\"[32m:[39m\"[32mPhoneNumber[39m\"[32m,[39m\"[32mValue[39m\"[32m:254716794826}]}}}}[39m[32m"[39m,
+    [34mcreated_at[39m: [32m"[39m[32m2026-04-08 21:09:29[39m[32m"[39m,
+    [34mupdated_at[39m: [32m"[39m[32m2026-04-08 21:09:46[39m[32m"[39m,
+  }

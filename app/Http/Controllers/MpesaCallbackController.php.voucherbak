@@ -1,0 +1,60 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Payment;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
+class MpesaCallbackController extends Controller
+{
+    public function handle(Request $request)
+    {
+        $data = $request->all();
+        Log::info('Mpesa callback', $data);
+
+        $stk = $data['Body']['stkCallback'] ?? null;
+        if (!$stk) {
+            return response()->json(['ResultCode' => 0, 'ResultDesc' => 'OK'], 200);
+        }
+
+        $resultCode = $stk['ResultCode'] ?? null;
+
+        $items   = collect($stk['CallbackMetadata']['Item'] ?? []);
+        $amount  = optional($items->firstWhere('Name', 'Amount'))['Value'] ?? null;
+        $receipt = optional($items->firstWhere('Name', 'MpesaReceiptNumber'))['Value'] ?? null;
+        $phone   = optional($items->firstWhere('Name', 'PhoneNumber'))['Value'] ?? null;
+
+        $payment = Payment::where('phone', $phone)
+            ->where('amount', $amount)
+            ->where('status', 'pending')
+            ->latest()
+            ->first();
+
+        if ($payment) {
+            $status = $resultCode === 0 ? 'successful' : 'failed';
+
+            $payment->update([
+                'status'  => $status,
+                'payload' => $data,
+                // 'mpesa_receipt' => $receipt, // once you add this column
+            ]);
+
+            if ($status === 'successful') {
+                $this->grantRouterAccess($payment);
+            }
+        }
+
+        return response()->json(['ResultCode' => 0, 'ResultDesc' => 'OK'], 200);
+    }
+
+    protected function grantRouterAccess(Payment $payment): void
+    {
+        // For now, just log so we see it fires.
+        Log::info('grantRouterAccess called after successful payment', [
+            'payment_id' => $payment->id,
+            'amount'     => $payment->amount,
+            'phone'      => $payment->phone,
+        ]);
+    }
+}

@@ -1,0 +1,64 @@
+@extends('layouts.app')
+
+@section('content')
+    <h1>Payments</h1>
+
+    <p>
+        <a href="{{ route('payments.create') }}">Create New Payment</a>
+    </p>
+
+    @if (session('success'))
+        <div style="color: green;">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if ($payments->isEmpty())
+        <p>No payments found.</p>
+    @else
+        <table border="1" cellpadding="5" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Reference</th>
+                    <th>Phone</th>
+                    <th>Amount</th>
+                    <th>Router</th>
+                    <th>Status</th>
+                    <th>Result Desc</th>
+                    <th>Created At</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($payments as $payment)
+                    <tr>
+                        <td>{{ $payment->id }}</td>
+                        <td>{{ $payment->reference }}</td>
+                        <td>{{ $payment->phone }}</td>
+                        <td>{{ $payment->amount }}</td>
+                        <td>{{ $payment->router->name ?? '-' }}</td>
+                        <td>
+                            @if ($payment->status === 'pending')
+                                Pending
+                            @elseif ($payment->status === 'successful')
+                                Successful
+                            @else
+                                Failed
+                            @endif
+                        </td>
+                        <td>
+                            @php
+                                $payload = is_array($payment->payload)
+                                    ? $payment->payload
+                                    : json_decode($payment->payload ?? '', true);
+                                $desc = $payload['Body']['stkCallback']['ResultDesc'] ?? null;
+                            @endphp
+                            {{ $desc ?? '-' }}
+                        </td>
+                        <td>{{ $payment->created_at }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+@endsection
