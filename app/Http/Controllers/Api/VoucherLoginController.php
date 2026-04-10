@@ -123,6 +123,21 @@ class VoucherLoginController extends Controller
                 }
             }
 
+            // 4b. Compute remaining time / data for client UI
+            $limitSeconds = $voucher->time_limit_seconds;
+            $limitMb      = $voucher->data_limit_mb;
+
+            $usedSeconds = $voucher->total_time_seconds ?? 0;
+            $usedMb      = $voucher->total_data_mb ?? 0.0;
+
+            $remainingSeconds = $limitSeconds !== null
+                ? max(0, $limitSeconds - $usedSeconds)
+                : null;
+
+            $remainingMb = $limitMb !== null
+                ? max(0.0, $limitMb - $usedMb)
+                : null;
+
             // 5. Create/update local HotspotUser model
             $hotspotUser = $voucher->hotspotUser ?: new HotspotUser();
             $hotspotUser->router_id     = $router->id;
@@ -178,6 +193,14 @@ class VoucherLoginController extends Controller
                 'mk_pass'     => $password,
                 'plan'        => $planCode,
                 'valid_until' => $voucher->valid_until,
+                'limits'      => [
+                    'time_limit_seconds' => $limitSeconds,
+                    'data_limit_mb'      => $limitMb,
+                    'used_time_seconds'  => $usedSeconds,
+                    'used_data_mb'       => $usedMb,
+                    'remaining_seconds'  => $remainingSeconds,
+                    'remaining_mb'       => $remainingMb,
+                ],
             ]);
         } catch (\Throwable $e) {
             Log::error('Voucher login fatal error', [

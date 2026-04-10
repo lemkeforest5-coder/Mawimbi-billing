@@ -72,6 +72,17 @@ class VoucherUsageController extends Controller
 
             if ($timeExceeded || $dataExceeded) {
                 $voucher->status = 'used'; // or 'expired'
+
+                Log::info('Voucher limits reached, marking as used', [
+                    'voucher_id'          => $voucher->id,
+                    'code'                => $voucher->code,
+                    'time_limit_seconds'  => $limitSeconds,
+                    'total_time_seconds'  => $voucher->total_time_seconds,
+                    'data_limit_mb'       => $limitMb,
+                    'total_data_mb'       => $voucher->total_data_mb,
+                    'time_exceeded'       => $timeExceeded,
+                    'data_exceeded'       => $dataExceeded,
+                ]);
             }
         }
 
