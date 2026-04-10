@@ -55,15 +55,25 @@ class GenerateVouchers extends Command
         for ($i = 0; $i < $count; $i++) {
             $code = $this->generateUniqueCode($prefix, $length);
 
-            $voucher = Voucher::create([
+            $voucherData = [
                 'router_id'      => $routerId,
                 'profile_id'     => $profileId,
                 'code'           => $code,
                 'face_value'     => $profile->price,
                 'status'         => 'new',
-                'expires_at'     => Carbon::now()->addDays(30), // default 30 days
+                'expires_at'     => Carbon::now()->addDays(30), // default 30 days (can be improved later)
                 'customer_phone' => null,
-            ]);
+            ];
+
+            if (! is_null($profile->time_limit_minutes)) {
+                $voucherData['time_limit_seconds'] = $profile->time_limit_minutes * 60;
+            }
+
+            if (! is_null($profile->data_limit_mb)) {
+                $voucherData['data_limit_mb'] = $profile->data_limit_mb;
+            }
+
+            $voucher = Voucher::create($voucherData);
 
             $generated[] = $voucher->code;
             $this->line(" - {$voucher->code}");

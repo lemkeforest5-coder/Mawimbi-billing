@@ -50,6 +50,19 @@ class VoucherController extends Controller
 
         $data['status'] = 'new';
 
+        // Pull limits from the selected profile
+        $profile = Profile::find($data['profile_id']);
+
+        if ($profile) {
+            if (! is_null($profile->time_limit_minutes)) {
+                $data['time_limit_seconds'] = $profile->time_limit_minutes * 60;
+            }
+
+            if (! is_null($profile->data_limit_mb)) {
+                $data['data_limit_mb'] = $profile->data_limit_mb;
+            }
+        }
+
         Voucher::create($data);
 
         return redirect()
@@ -103,19 +116,16 @@ class VoucherController extends Controller
         $routerProfileName = $profile->router_profile_name ?? $profile->name ?? 'default';
 
         try {
-    $profile = $voucher->profile;
-    $routerProfileName = $profile->router_profile_name ?? $profile->name ?? 'default';
+            $this->mikrotik->createOrEnableHotspotUser(
+                $router,
+                $voucher->code,
+                $routerProfileName
+            );
 
-    $this->mikrotik->createOrEnableHotspotUser(
-        $router,
-        $voucher->code,
-        $routerProfileName
-    );
+            $voucher->update(['synced_to_mikrotik' => true]);
 
-    $voucher->update(['synced_to_mikrotik' => true]);
-
-    return back()->with('status', "Voucher {$voucher->code} sent to Mikrotik.");
-} catch (\Throwable $e) {
+            return back()->with('status', "Voucher {$voucher->code} sent to Mikrotik.");
+        } catch (\Throwable $e) {
             \Log::error('SendToMikrotik failed', [
                 'voucher_id' => $voucher->id,
                 'error'      => $e->getMessage(),

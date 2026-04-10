@@ -21,6 +21,7 @@ class HotspotCors
         $allowed = [
             'http://hotspot.local',
             'http://10.10.10.1',
+            'http://mawimbiwifi.dpdns.org',
         ];
 
         if ($origin && in_array($origin, $allowed, true)) {
@@ -28,7 +29,10 @@ class HotspotCors
         }
 
         $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Accept, Origin');
+        $response->headers->set(
+            'Access-Control-Allow-Headers',
+            'Content-Type, Accept, Origin, X-Requested-With'
+        );
 
         return $response;
     }

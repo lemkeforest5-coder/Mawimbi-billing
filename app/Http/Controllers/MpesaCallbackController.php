@@ -5,13 +5,22 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Str;
 use App\Models\Payment;
 use App\Models\Voucher;
+use App\Models\Profile;
 use App\Models\TelegramAdmin;
 use App\Notifications\PaymentSucceeded;
+use App\Services\MikrotikService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class MpesaCallbackController extends Controller
 {
+    protected MikrotikService $mikrotik;
+
+    public function __construct(MikrotikService $mikrotik)
+    {
+        $this->mikrotik = $mikrotik;
+    }
+
     public function handle(Request $request)
     {
         $data = $request->all();
@@ -133,7 +142,10 @@ class MpesaCallbackController extends Controller
 
         $plan = $this->mapPlanByAmount($payment);
 
-        $voucher = Voucher::create([
+        // Load profile to get limits
+        $profile = Profile::find($plan['profile_id']);
+
+        $voucherData = [
             'router_id'          => $payment->router_id,
             'profile_id'         => $plan['profile_id'],
             'code'               => Str::upper(Str::random(8)),
@@ -143,11 +155,58 @@ class MpesaCallbackController extends Controller
             'expires_at'         => now()->addHours($plan['valid_hours']),
             'customer_phone'     => $payment->phone,
             'hotspot_user_id'    => null,
-        ]);
+        ];
+
+        if ($profile) {
+            if (! is_null($profile->time_limit_minutes)) {
+                $voucherData['time_limit_seconds'] = $profile->time_limit_minutes * 60;
+            }
+
+            if (! is_null($profile->data_limit_mb)) {
+                $voucherData['data_limit_mb'] = $profile->data_limit_mb;
+            }
+        }
+
+        $voucher = Voucher::create($voucherData);
 
         $payment->voucher_id   = $voucher->id;
         $payment->voucher_code = $voucher->code;
         $payment->save();
+
+        // Try to create/enable MikroTik hotspot user for this voucher
+        try {
+            $router = $payment->router; // assumes Payment has router() relation
+            $profileName = $voucher->profile?->name;
+
+            if ($router && $profileName) {
+                $this->mikrotik->createOrEnableHotspotUser(
+                    $router,
+                    $voucher->code,   // username/password
+                    $profileName      // MikroTik profile name
+                );
+
+                Log::info('Mikrotik hotspot user created/enabled after payment', [
+                    'payment_id' => $payment->id,
+                    'voucher_id' => $voucher->id,
+                    'router_id'  => $router->id,
+                    'username'   => $voucher->code,
+                    'profile'    => $profileName,
+                ]);
+            } else {
+                Log::warning('Mikrotik not called: missing router or profile', [
+                    'payment_id' => $payment->id,
+                    'voucher_id' => $voucher->id,
+                    'has_router' => (bool) $router,
+                    'profile'    => $profileName,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::error('MikrotikService failed after successful payment', [
+                'payment_id' => $payment->id,
+                'voucher_id' => $voucher->id,
+                'error'      => $e->getMessage(),
+            ]);
+        }
 
         try {
             $admin = new TelegramAdmin();

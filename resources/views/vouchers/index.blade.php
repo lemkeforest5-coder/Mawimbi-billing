@@ -34,24 +34,24 @@
             <td>{{ $v->router?->name }}</td>
             <td>{{ $v->profile?->name }}</td>
             <td>{{ $v->status }}</td>
-<td>{{ $v->synced_to_mikrotik ? 'Yes' : 'No' }}</td>
-<td>{{ optional($v->expires_at)->toDateTimeString() }}</td>
-<td>{{ optional($v->used_at)->toDateTimeString() ?: '-' }}</td>
-<td>{{ $v->created_at->toDateTimeString() }}</td>
+            <td>{{ $v->synced_to_mikrotik ? 'Yes' : 'No' }}</td>
+            <td>{{ optional($v->expires_at)->toDateTimeString() }}</td>
+            <td>{{ optional($v->used_at)->toDateTimeString() ?: '-' }}</td>
+            <td>{{ $v->created_at->toDateTimeString() }}</td>
             <td>
-    <a href="{{ route('vouchers.edit', $v) }}">Edit</a>
+                <a href="{{ route('vouchers.edit', $v) }}">Edit</a>
 
-    <form action="{{ route('vouchers.destroy', $v) }}" method="post" style="display:inline;">
-        @csrf
-        @method('DELETE')
-        <button type="submit" onclick="return confirm('Delete this voucher?')">Delete</button>
-    </form>
+                <form action="{{ route('vouchers.destroy', $v) }}" method="post" style="display:inline;">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" onclick="return confirm('Delete this voucher?')">Delete</button>
+                </form>
 
-    <form action="{{ route('vouchers.sendToMikrotik', $v) }}" method="post" style="display:inline;">
-        @csrf
-        <button type="submit">Send to Mikrotik</button>
-    </form>
-</td>
+                <form action="{{ route('vouchers.sendToMikrotik', $v) }}" method="post" style="display:inline;">
+                    @csrf
+                    <button type="submit">Send to Mikrotik</button>
+                </form>
+            </td>
         </tr>
     @empty
         <tr>

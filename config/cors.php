@@ -9,6 +9,7 @@ return [
     'allowed_origins' => [
         'http://hotspot.local',
         'http://10.10.10.1',
+        'http://mawimbiwifi.dpdns.org',
     ],
 
     'allowed_origins_patterns' => [],
