@@ -23,6 +23,7 @@ class VoucherController extends Controller
         $query = Voucher::with(['router', 'profile'])
             ->orderByDesc('id');
 
+        // Text search
         if ($search = $request->input('q')) {
             $query->where(function ($q) use ($search) {
                 $q->where('code', 'like', "%{$search}%")
@@ -30,8 +31,41 @@ class VoucherController extends Controller
             });
         }
 
+        // Status filter
         if ($status = $request->input('status')) {
             $query->where('status', $status);
+        }
+
+        // Profile filter (for per-profile drilldown)
+        if ($profileId = $request->input('profile_id')) {
+            $query->where('profile_id', $profileId);
+        }
+
+        // Date range filter (created_at) coming from admin overview
+        if ($range = $request->input('range')) {
+            switch ($range) {
+                case '7':
+                    $from = now()->startOfDay()->subDays(6);
+                    $to   = now()->endOfDay();
+                    break;
+                case '30':
+                    $from = now()->startOfDay()->subDays(29);
+                    $to   = now()->endOfDay();
+                    break;
+                case 'all':
+                    $from = null;
+                    $to   = null;
+                    break;
+                case 'today':
+                default:
+                    $from = now()->startOfDay();
+                    $to   = now()->endOfDay();
+                    break;
+            }
+
+            if ($from && $to) {
+                $query->whereBetween('created_at', [$from, $to]);
+            }
         }
 
         $vouchers = $query->paginate(25)->withQueryString();
