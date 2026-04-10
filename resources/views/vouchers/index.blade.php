@@ -32,6 +32,8 @@
             <th>Expires at</th>
             <th>Total Time</th>
             <th>Total Data (MB)</th>
+            <th>Remaining Time</th>
+            <th>Remaining Data (MB)</th>
         </tr>
         </thead>
         <tbody>
@@ -47,10 +49,29 @@
                 <td>{{ $voucher->expires_at ?? '-' }}</td>
                 <td>{{ $voucher->total_time_human }}</td>
                 <td>{{ number_format($voucher->total_data_mb) }}</td>
+                <td>
+                    @if (! is_null($voucher->remaining_time_seconds))
+                        @php
+                            $rem = $voucher->remaining_time_seconds;
+                            $h = intdiv($rem, 3600);
+                            $m = intdiv($rem % 3600, 60);
+                        @endphp
+                        {{ sprintf('%02dh %02dm', $h, $m) }}
+                    @else
+                        -
+                    @endif
+                </td>
+                <td>
+                    @if (! is_null($voucher->remaining_data_mb))
+                        {{ number_format($voucher->remaining_data_mb) }}
+                    @else
+                        -
+                    @endif
+                </td>
             </tr>
         @empty
             <tr>
-                <td colspan="10">No vouchers found.</td>
+                <td colspan="12">No vouchers found.</td>
             </tr>
         @endforelse
         </tbody>
@@ -61,3 +82,4 @@
             {{ $vouchers->links() }}
         </div>
     @endif
+@endsection

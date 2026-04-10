@@ -31,7 +31,7 @@ class Voucher extends Model
         'expires_at'         => 'datetime',
         'used_at'            => 'datetime',
         'total_time_seconds' => 'integer',
-        'total_data_mb'      => 'integer',
+        'total_data_mb'      => 'float',
     ];
 
     public function payment()
@@ -93,5 +93,33 @@ class Voucher extends Model
         $minutes = intdiv($seconds % 3600, 60);
 
         return sprintf('%02dh %02dm', $hours, $minutes);
+    }
+
+    public function getRemainingTimeSecondsAttribute(): ?int
+    {
+        $profile = $this->profile;
+
+        if (! $profile || is_null($profile->time_limit_minutes)) {
+            return null;
+        }
+
+        $limitSeconds = $profile->time_limit_minutes * 60;
+        $used = $this->total_time_seconds ?? 0;
+
+        return max($limitSeconds - $used, 0);
+    }
+
+    public function getRemainingDataMbAttribute(): ?float
+    {
+        $profile = $this->profile;
+
+        if (! $profile || is_null($profile->data_limit_mb)) {
+            return null;
+        }
+
+        $limitMb = $profile->data_limit_mb;
+        $used = $this->total_data_mb ?? 0.0;
+
+        return max($limitMb - $used, 0.0);
     }
 }
