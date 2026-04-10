@@ -54,8 +54,7 @@ class VoucherUsageController extends Controller
             $voucher->total_data_mb = ($voucher->total_data_mb ?? 0) + $sessionDataMb;
         }
 
-        // Optional: enforce limits and mark as used/expired
-        /*
+        // Enforce limits and mark as used/expired
         $profile = $voucher->profile;
 
         if ($profile) {
@@ -75,7 +74,6 @@ class VoucherUsageController extends Controller
                 $voucher->status = 'used'; // or 'expired'
             }
         }
-        */
 
         $voucher->save();
 
