@@ -18,11 +18,23 @@ class VoucherController extends Controller
         $this->mikrotik = $mikrotik;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $vouchers = Voucher::with(['router', 'profile'])
-            ->orderByDesc('id')
-            ->paginate(25);
+        $query = Voucher::with(['router', 'profile'])
+            ->orderByDesc('id');
+
+        if ($search = $request->input('q')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                  ->orWhere('customer_phone', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status = $request->input('status')) {
+            $query->where('status', $status);
+        }
+
+        $vouchers = $query->paginate(25)->withQueryString();
 
         return view('vouchers.index', compact('vouchers'));
     }
