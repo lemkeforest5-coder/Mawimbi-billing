@@ -1,10 +1,11 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RouterController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\AdminOverviewController;
 
 Route::get('/', function () {
     return response()->json([
@@ -18,8 +19,13 @@ Route::get('/hotspot', function () {
     return view('hotspot');
 });
 
+// Admin overview
+Route::get('/admin/overview', [AdminOverviewController::class, 'index'])
+    ->name('admin.overview');
+
 // Routers
 Route::resource('routers', RouterController::class)->except(['show']);
+
 // Profiles
 Route::resource('profiles', ProfileController::class)->except(['show']);
 

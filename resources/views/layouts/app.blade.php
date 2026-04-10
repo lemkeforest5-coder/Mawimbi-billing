@@ -7,6 +7,7 @@
 <body>
     <nav>
         <a href="{{ url('/') }}">Status</a> |
+        <a href="{{ url('/admin/overview') }}">Overview</a> |
         <a href="{{ url('/routers') }}">Routers</a> |
         <a href="{{ url('/profiles') }}">Profiles</a> |
         <a href="{{ url('/vouchers') }}">Vouchers</a> |
