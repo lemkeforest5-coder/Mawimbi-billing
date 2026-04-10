@@ -28,13 +28,16 @@ class Voucher extends Model
     ];
 
     protected $casts = [
-        'expires_at' => 'datetime',
-        'used_at'    => 'datetime',
+        'expires_at'         => 'datetime',
+        'used_at'            => 'datetime',
+        'total_time_seconds' => 'integer',
+        'total_data_mb'      => 'integer',
     ];
-public function payment()
-{
-    return $this->hasOne(\App\Models\Payment::class);
-}
+
+    public function payment()
+    {
+        return $this->hasOne(\App\Models\Payment::class);
+    }
 
     protected static function booted()
     {
@@ -80,5 +83,15 @@ public function payment()
     public function router()
     {
         return $this->belongsTo(Router::class);
+    }
+
+    public function getTotalTimeHumanAttribute(): string
+    {
+        $seconds = $this->total_time_seconds ?? 0;
+
+        $hours = intdiv($seconds, 3600);
+        $minutes = intdiv($seconds % 3600, 60);
+
+        return sprintf('%02dh %02dm', $hours, $minutes);
     }
 }
