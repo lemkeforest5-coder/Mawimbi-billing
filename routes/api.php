@@ -1,5 +1,5 @@
 <?php
-
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Api\VoucherUsageController;
 use App\Http\Controllers\MpesaPaymentController;
 use App\Http\Controllers\MpesaCallbackController;
@@ -26,3 +26,4 @@ Route::post('mb/v1/pay/mpesa', [MpesaPaymentController::class, 'initiate'])
 
 Route::post('/voucher/usage', VoucherUsageController::class)
     ->name('api.voucher.usage');
+Route::get('/mb/v1/payment/{payment}/voucher', [PaymentController::class, 'voucher']);

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RouterController;
 use App\Http\Controllers\VoucherController;
@@ -19,6 +20,8 @@ Route::get('/hotspot', function () {
 
 // Routers
 Route::resource('routers', RouterController::class)->except(['show']);
+// Profiles
+Route::resource('profiles', ProfileController::class)->except(['show']);
 
 // Vouchers
 Route::resource('vouchers', VoucherController::class)->except(['show']);

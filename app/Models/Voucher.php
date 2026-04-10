@@ -2,45 +2,83 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Voucher extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'code',
         'router_id',
         'profile_id',
-        'status',           // 'new','reserved','used','expired','disabled'
-        'expires_at',
+        'code',
         'face_value',
-        'customer_phone',
-        'hotspot_user_id',
-        'synced_to_mikrotik',
         'time_limit_seconds',
         'data_limit_mb',
+        'price',
         'total_time_seconds',
         'total_data_mb',
+        'status',
+        'synced_to_mikrotik',
+        'expires_at',
+        'used_at',
+        'customer_phone',
+        'hotspot_user_id',
     ];
 
     protected $casts = [
-        'expires_at'         => 'datetime',
-        'used_at'            => 'datetime',
-        'synced_to_mikrotik' => 'boolean',
+        'expires_at' => 'datetime',
+        'used_at'    => 'datetime',
     ];
+public function payment()
+{
+    return $this->hasOne(\App\Models\Payment::class);
+}
 
-    public function router(): BelongsTo
+    protected static function booted()
     {
-        return $this->belongsTo(Router::class);
+        static::creating(function (Voucher $voucher) {
+            $profile = $voucher->profile ?? Profile::find($voucher->profile_id);
+
+            if (! $profile) {
+                return;
+            }
+
+            // Time from profile minutes → seconds
+            if (is_null($voucher->time_limit_seconds) && ! is_null($profile->time_limit_minutes)) {
+                $voucher->time_limit_seconds = $profile->time_limit_minutes * 60;
+            }
+
+            // Data limit
+            if (is_null($voucher->data_limit_mb) && ! is_null($profile->data_limit_mb)) {
+                $voucher->data_limit_mb = $profile->data_limit_mb;
+            }
+
+            // Price
+            if (is_null($voucher->price) && ! is_null($profile->price)) {
+                $voucher->price = $profile->price;
+            }
+
+            // Optional: face_value same as price
+            if (is_null($voucher->face_value) && ! is_null($voucher->price)) {
+                $voucher->face_value = $voucher->price;
+            }
+
+            // Default status
+            if (is_null($voucher->status)) {
+                $voucher->status = 'new';
+            }
+        });
     }
 
-    public function profile(): BelongsTo
+    public function profile()
     {
         return $this->belongsTo(Profile::class);
     }
 
-    public function hotspotUser(): BelongsTo
+    public function router()
     {
-        return $this->belongsTo(HotspotUser::class, 'hotspot_user_id');
+        return $this->belongsTo(Router::class);
     }
 }

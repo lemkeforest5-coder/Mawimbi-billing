@@ -32,7 +32,7 @@ class Payment extends Model
 
     public function voucher(): BelongsTo
     {
-        return $this->belongsTo(Voucher::class);
+        return $this->belongsTo(\App\Models\Voucher::class);
     }
 
     public function isSuccessful(): bool

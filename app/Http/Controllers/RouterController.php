@@ -27,7 +27,7 @@ class RouterController extends Controller
             'api_port'     => 'required|integer|min:1|max:65535',
             'api_username' => 'required|string|max:255',
             'api_password' => 'required|string|max:255',
-            'enabled'      => 'nullable|boolean',
+            'enabled'      => 'nullable',
         ]);
 
         $data['enabled'] = $request->has('enabled');
@@ -52,7 +52,7 @@ class RouterController extends Controller
             'api_port'     => 'required|integer|min:1|max:65535',
             'api_username' => 'required|string|max:255',
             'api_password' => 'required|string|max:255',
-            'enabled'      => 'nullable|boolean',
+            'enabled'      => 'nullable',
         ]);
 
         $data['enabled'] = $request->has('enabled');

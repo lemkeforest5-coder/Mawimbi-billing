@@ -26,6 +26,31 @@ class PaymentController extends Controller
 
     return view('payments.index', compact('payments'));
 }
+public function voucher(\App\Models\Payment $payment)
+{
+    if (! $payment->voucher_id) {
+        return response()->json([
+            'ok'      => false,
+            'message' => 'Voucher not ready yet.',
+        ]);
+    }
+
+    $voucher = $payment->voucher;
+
+    if (! $voucher) {
+        return response()->json([
+            'ok'      => false,
+            'message' => 'Voucher not found.',
+        ]);
+    }
+
+    return response()->json([
+        'ok'           => true,
+        'code'         => $voucher->code,
+        'profile'      => optional($voucher->profile)->name,
+        'time_seconds' => $voucher->time_limit_seconds,
+    ]);
+}
 public function show(\App\Models\Payment $payment)
 {
     return view('payments.show', compact('payment'));
