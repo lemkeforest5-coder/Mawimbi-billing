@@ -16,24 +16,24 @@ class AdminOverviewController extends Controller
 
         switch ($range) {
             case '7':
-                $from = Carbon::today()->subDays(6); // last 7 days incl. today
-                $to   = Carbon::today();
+                $from  = Carbon::today()->subDays(6); // last 7 days incl. today
+                $to    = Carbon::today();
                 $label = 'Last 7 days';
                 break;
             case '30':
-                $from = Carbon::today()->subDays(29);
-                $to   = Carbon::today();
+                $from  = Carbon::today()->subDays(29);
+                $to    = Carbon::today();
                 $label = 'Last 30 days';
                 break;
             case 'all':
-                $from = null;
-                $to   = null;
+                $from  = null;
+                $to    = null;
                 $label = 'All time';
                 break;
             case 'today':
             default:
-                $from = Carbon::today();
-                $to   = Carbon::today();
+                $from  = Carbon::today();
+                $to    = Carbon::today();
                 $label = 'Today';
                 $range = 'today';
                 break;
@@ -44,9 +44,16 @@ class AdminOverviewController extends Controller
         if ($from && $to) {
             $paymentsQuery->whereBetween('created_at', [$from->copy()->startOfDay(), $to->copy()->endOfDay()]);
         }
-        $payments = $paymentsQuery->get();
+        $payments      = $paymentsQuery->get();
         $paymentsCount = $payments->count();
         $paymentsTotal = $payments->sum('amount');
+
+        // Payment status and provider breakdown
+        $paymentsSuccessful  = $payments->where('status', 'Successful')->count();
+        $paymentsPending     = $payments->where('status', 'Pending')->count();
+        $paymentsFailed      = $payments->where('status', 'Failed')->count();
+        $paymentsMpesaTotal  = $payments->where('provider', 'mpesa')->sum('amount');
+        $paymentsManualTotal = $payments->where('provider', 'manual')->sum('amount');
 
         // Vouchers created
         $vouchersCreatedQuery = Voucher::query();
@@ -80,8 +87,8 @@ class AdminOverviewController extends Controller
                 $usedQuery->whereBetween('used_at', [$from->copy()->startOfDay(), $to->copy()->endOfDay()]);
             }
 
-            $createdCount = $createdQuery->count();
-            $usedCount    = $usedQuery->count();
+            $createdCount     = $createdQuery->count();
+            $usedCount        = $usedQuery->count();
             $estimatedRevenue = $usedCount * ($profile->price ?? 0);
 
             return [
@@ -92,15 +99,27 @@ class AdminOverviewController extends Controller
             ];
         });
 
+        // Top 3 profiles by estimated revenue for this range
+        $topProfiles = $profileStats
+            ->sortByDesc('estimated_revenue')
+            ->take(3)
+            ->values();
+
         return view('admin.overview', [
             'range'                => $range,
             'rangeLabel'           => $label,
             'paymentsCount'        => $paymentsCount,
             'paymentsTotal'        => $paymentsTotal,
+            'paymentsSuccessful'   => $paymentsSuccessful,
+            'paymentsPending'      => $paymentsPending,
+            'paymentsFailed'       => $paymentsFailed,
+            'paymentsMpesaTotal'   => $paymentsMpesaTotal,
+            'paymentsManualTotal'  => $paymentsManualTotal,
             'vouchersCreatedCount' => $vouchersCreatedCount,
             'vouchersUsedCount'    => $vouchersUsedCount,
             'expiredUnused'        => $expiredUnused,
             'profileStats'         => $profileStats,
+            'topProfiles'          => $topProfiles,
         ]);
     }
 }
