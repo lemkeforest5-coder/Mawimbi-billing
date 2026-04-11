@@ -39,6 +39,11 @@ class Voucher extends Model
         return $this->hasOne(\App\Models\Payment::class);
     }
 
+    public function payments()
+    {
+        return $this->hasMany(\App\Models\Payment::class);
+    }
+
     protected static function booted()
     {
         static::creating(function (Voucher $voucher) {

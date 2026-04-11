@@ -21,6 +21,7 @@ class VoucherController extends Controller
     public function index(Request $request)
     {
         $query = Voucher::with(['router', 'profile'])
+            ->withCount('payments')
             ->orderByDesc('id');
 
         // Text search
@@ -179,5 +180,10 @@ class VoucherController extends Controller
 
             return back()->with('status', 'Failed to send to Mikrotik: '.$e->getMessage());
         }
+    }
+
+    public function print(Voucher $voucher)
+    {
+        return view('vouchers.print', compact('voucher'));
     }
 }

@@ -4,57 +4,104 @@ namespace App\Http\Controllers;
 
 use App\Models\Payment;
 use App\Models\Router;
+use App\Models\Voucher;
 use Illuminate\Http\Request;
 use App\Services\MpesaService;
 use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
-   public function index(Request $request)
-{
-    $query = Payment::with('router')->orderByDesc('created_at');
+    public function index(Request $request)
+    {
+        $baseQuery = Payment::query();
 
-    if ($request->filled('status')) {
-        $query->where('status', $request->status);
+        // For overall stats, only count successful payments
+        $successful = (clone $baseQuery)->where('status', 'successful');
+
+        $countAll    = (clone $successful)->count();
+        $totalAmount = (clone $successful)->sum('amount');
+
+        $totalToday = (clone $successful)
+            ->whereDate('created_at', now()->toDateString())
+            ->sum('amount');
+
+        $total7 = (clone $successful)
+            ->where('created_at', '>=', now()->subDays(6)->startOfDay())
+            ->sum('amount');
+
+        $total30 = (clone $successful)
+            ->where('created_at', '>=', now()->subDays(29)->startOfDay())
+            ->sum('amount');
+
+        // Per-router totals (successful only)
+        $perRouter = (clone $successful)
+            ->selectRaw('router_id, SUM(amount) as total_amount, COUNT(*) as cnt')
+            ->groupBy('router_id')
+            ->with('router')
+            ->get();
+
+        // List query with filters
+        $query = Payment::with('router')->orderByDesc('created_at');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('provider')) {
+            $query->where('provider', $request->provider);
+        }
+
+        if ($request->filled('voucher_code')) {
+            $query->where('voucher_code', $request->voucher_code);
+        }
+
+        if ($request->filled('minutes')) {
+            $query->where('created_at', '>=', now()->subMinutes((int) $request->minutes));
+        }
+
+        $payments = $query->get();
+
+        return view('payments.index', compact(
+            'payments',
+            'countAll',
+            'totalAmount',
+            'totalToday',
+            'total7',
+            'total30',
+            'perRouter'
+        ));
     }
 
-    if ($request->filled('minutes')) {
-        $query->where('created_at', '>=', now()->subMinutes((int) $request->minutes));
-    }
+    public function voucher(Payment $payment)
+    {
+        if (! $payment->voucher_id) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'Voucher not ready yet.',
+            ]);
+        }
 
-    $payments = $query->get();
+        $voucher = $payment->voucher;
 
-    return view('payments.index', compact('payments'));
-}
-public function voucher(\App\Models\Payment $payment)
-{
-    if (! $payment->voucher_id) {
+        if (! $voucher) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'Voucher not found.',
+            ]);
+        }
+
         return response()->json([
-            'ok'      => false,
-            'message' => 'Voucher not ready yet.',
+            'ok'           => true,
+            'code'         => $voucher->code,
+            'profile'      => optional($voucher->profile)->name,
+            'time_seconds' => $voucher->time_limit_seconds,
         ]);
     }
 
-    $voucher = $payment->voucher;
-
-    if (! $voucher) {
-        return response()->json([
-            'ok'      => false,
-            'message' => 'Voucher not found.',
-        ]);
+    public function show(Payment $payment)
+    {
+        return view('payments.show', compact('payment'));
     }
-
-    return response()->json([
-        'ok'           => true,
-        'code'         => $voucher->code,
-        'profile'      => optional($voucher->profile)->name,
-        'time_seconds' => $voucher->time_limit_seconds,
-    ]);
-}
-public function show(\App\Models\Payment $payment)
-{
-    return view('payments.show', compact('payment'));
-}
 
     public function create()
     {
@@ -66,12 +113,40 @@ public function show(\App\Models\Payment $payment)
     public function store(Request $request, MpesaService $mpesa)
     {
         $validated = $request->validate([
-            'phone'     => ['required', 'string', 'min:10'],
-            'amount'    => ['required', 'numeric', 'min:1'],
-            'router_id' => ['required', 'exists:routers,id'],
-            'bundle'    => ['nullable', 'string', 'max:191'], // stays only in form, not DB
+            'type'        => ['required', 'in:mpesa,manual'],
+            'phone'       => ['nullable', 'string', 'min:10'],
+            'amount'      => ['required', 'numeric', 'min:1'],
+            'router_id'   => ['required', 'exists:routers,id'],
+            'bundle'      => ['nullable', 'string', 'max:191'],
+            'voucher_code'=> ['nullable', 'string', 'max:64'],
         ]);
 
+        if ($validated['type'] === 'manual') {
+            $voucher = null;
+
+            if (! empty($validated['voucher_code'])) {
+                $voucher = Voucher::where('code', $validated['voucher_code'])->first();
+            }
+
+            $payment = Payment::create([
+                'router_id'     => $validated['router_id'],
+                'voucher_id'    => $voucher?->id,
+                'provider'      => 'manual',
+                'reference'     => 'MANUAL-' . time() . '-' . rand(1000, 9999),
+                'voucher_code'  => $validated['voucher_code'] ?? null,
+                'phone'         => $validated['phone'] ?? null,
+                'amount'        => $validated['amount'],
+                'status'        => 'successful',
+                'result_description' => 'Manual payment recorded',
+                'payload'       => null,
+            ]);
+
+            return redirect()
+                ->route('payments.index')
+                ->with('success', 'Manual payment saved' . ($voucher ? ' and linked to voucher '.$voucher->code : ''));
+        }
+
+        // M-Pesa STK push flow
         $reference = 'PENDING-' . time() . '-' . rand(1000, 9999);
 
         $payment = Payment::create([

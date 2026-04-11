@@ -6,6 +6,7 @@ use App\Http\Controllers\RouterController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\AdminOverviewController;
+use App\Http\Controllers\VoucherPortalController;
 
 Route::get('/', function () {
     return response()->json([
@@ -19,6 +20,12 @@ Route::get('/hotspot', function () {
     return view('hotspot');
 });
 
+Route::get('/voucher/check', [VoucherPortalController::class, 'showForm'])
+    ->name('voucher.check.form');
+
+Route::post('/voucher/check', [VoucherPortalController::class, 'check'])
+    ->name('voucher.check');
+
 // Admin overview
 Route::get('/admin/overview', [AdminOverviewController::class, 'index'])
     ->name('admin.overview');
@@ -31,6 +38,9 @@ Route::resource('profiles', ProfileController::class)->except(['show']);
 
 // Vouchers
 Route::resource('vouchers', VoucherController::class)->except(['show']);
+
+Route::get('/vouchers/{voucher}/print', [VoucherController::class, 'print'])
+    ->name('vouchers.print');
 
 // Manual send voucher to Mikrotik
 Route::post(

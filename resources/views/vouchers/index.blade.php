@@ -34,6 +34,8 @@
             <th>Total Data (MB)</th>
             <th>Remaining Time</th>
             <th>Remaining Data (MB)</th>
+            <th>Payments</th>
+            <th>Actions</th>
         </tr>
         </thead>
         <tbody>
@@ -68,10 +70,23 @@
                         -
                     @endif
                 </td>
+                <td>
+                    @php $count = $voucher->payments_count ?? 0; @endphp
+                    @if ($count > 0)
+                        <a href="{{ route('payments.index', ['voucher_code' => $voucher->voucher_code ?? $voucher->code]) }}">
+                            {{ $count }} payment{{ $count > 1 ? 's' : '' }}
+                        </a>
+                    @else
+                        0
+                    @endif
+                </td>
+                <td>
+                    <a href="{{ route('vouchers.print', $voucher) }}" target="_blank">Print</a>
+                </td>
             </tr>
         @empty
             <tr>
-                <td colspan="12">No vouchers found.</td>
+                <td colspan="14">No vouchers found.</td>
             </tr>
         @endforelse
         </tbody>
