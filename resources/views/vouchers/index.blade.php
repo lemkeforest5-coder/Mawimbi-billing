@@ -3,6 +3,10 @@
 @section('content')
     <h1>Vouchers</h1>
 
+    <p>
+        <a href="{{ route('vouchers.batch.print.form') }}">Batch print recent vouchers</a>
+    </p>
+
     <form method="GET" action="{{ url('/vouchers') }}">
         <input type="text"
                name="q"
@@ -41,7 +45,11 @@
         <tbody>
         @forelse($vouchers as $voucher)
             <tr>
-                <td>{{ $voucher->id }}</td>
+                <td>
+                    <a href="{{ route('vouchers.show', $voucher) }}">
+                        {{ $voucher->id }}
+                    </a>
+                </td>
                 <td>{{ $voucher->code }}</td>
                 <td>{{ $voucher->profile->name ?? '-' }}</td>
                 <td>{{ $voucher->customer_phone ?? '-' }}</td>

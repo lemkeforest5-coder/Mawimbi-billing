@@ -24,7 +24,6 @@ class VoucherController extends Controller
             ->withCount('payments')
             ->orderByDesc('id');
 
-        // Text search
         if ($search = $request->input('q')) {
             $query->where(function ($q) use ($search) {
                 $q->where('code', 'like', "%{$search}%")
@@ -32,17 +31,14 @@ class VoucherController extends Controller
             });
         }
 
-        // Status filter
         if ($status = $request->input('status')) {
             $query->where('status', $status);
         }
 
-        // Profile filter (for per-profile drilldown)
         if ($profileId = $request->input('profile_id')) {
             $query->where('profile_id', $profileId);
         }
 
-        // Date range filter (created_at) coming from admin overview
         if ($range = $request->input('range')) {
             switch ($range) {
                 case '7':
@@ -97,7 +93,6 @@ class VoucherController extends Controller
 
         $data['status'] = 'new';
 
-        // Pull limits from the selected profile
         $profile = Profile::find($data['profile_id']);
 
         if ($profile) {
@@ -151,6 +146,13 @@ class VoucherController extends Controller
             ->with('status', 'Voucher deleted.');
     }
 
+    public function show(Voucher $voucher)
+    {
+        $voucher->load(['router', 'profile', 'payments']);
+
+        return view('vouchers.show', compact('voucher'));
+    }
+
     public function sendToMikrotik(Voucher $voucher)
     {
         $router = $voucher->router;
@@ -185,5 +187,37 @@ class VoucherController extends Controller
     public function print(Voucher $voucher)
     {
         return view('vouchers.print', compact('voucher'));
+    }
+
+    public function batchPrintForm(Request $request)
+    {
+        $vouchers = Voucher::orderByDesc('id')
+            ->take(60)
+            ->get();
+
+        return view('vouchers.batch_print_select', compact('vouchers'));
+    }
+
+    public function batchPrint(Request $request)
+    {
+        $ids = $request->input('voucher_ids', []);
+
+        if (empty($ids) || !is_array($ids)) {
+            return redirect()
+                ->route('vouchers.batch.print.form')
+                ->with('status', 'No vouchers selected.');
+        }
+
+        $vouchers = Voucher::whereIn('id', $ids)
+            ->orderBy('id')
+            ->get();
+
+        if ($vouchers->isEmpty()) {
+            return redirect()
+                ->route('vouchers.batch.print.form')
+                ->with('status', 'No vouchers found for the selected IDs.');
+        }
+
+        return view('vouchers.batch_print', compact('vouchers'));
     }
 }

@@ -43,16 +43,51 @@ class PaymentController extends Controller
         // List query with filters
         $query = Payment::with('router')->orderByDesc('created_at');
 
+        // Status filter
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
+        // Provider filter
         if ($request->filled('provider')) {
             $query->where('provider', $request->provider);
         }
 
+        // Exact voucher code filter (keep existing behaviour)
         if ($request->filled('voucher_code')) {
             $query->where('voucher_code', $request->voucher_code);
+        }
+
+        // Free-text search: phone, voucher_code, reference
+        $search = trim($request->input('q', ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('phone', 'like', "%{$search}%")
+                  ->orWhere('voucher_code', 'like', "%{$search}%")
+                  ->orWhere('reference', 'like', "%{$search}%");
+            });
+        }
+
+        // Time filter: keep "last minutes" but add range presets
+        $range = $request->input('range', ''); // '', today, 7, 30, all
+
+        $from = $to = null;
+
+        if ($range === 'today') {
+            $from = now()->startOfDay();
+            $to   = now()->endOfDay();
+        } elseif ($range === '7') {
+            $from = now()->startOfDay()->subDays(6);
+            $to   = now()->endOfDay();
+        } elseif ($range === '30') {
+            $from = now()->startOfDay()->subDays(29);
+            $to   = now()->endOfDay();
+        } elseif ($range === 'all' || $range === '') {
+            // no date constraint from range
+        }
+
+        if ($from && $to) {
+            $query->whereBetween('created_at', [$from, $to]);
         }
 
         if ($request->filled('minutes')) {
@@ -69,7 +104,10 @@ class PaymentController extends Controller
             'total7',
             'total30',
             'perRouter'
-        ));
+        ) + [
+            'search' => $search,
+            'range'  => $range,
+        ]);
     }
 
     public function voucher(Payment $payment)

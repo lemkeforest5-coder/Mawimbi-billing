@@ -43,6 +43,14 @@
     @endisset
 
     <form method="GET" action="{{ route('payments.index') }}" style="margin-bottom: 10px;">
+        <label for="q">Search:</label>
+        <input type="text"
+               name="q"
+               id="q"
+               value="{{ request('q') }}"
+               placeholder="Phone, voucher code or reference"
+               style="width: 220px;">
+
         <label for="status">Status:</label>
         <select name="status" id="status">
             <option value="">All</option>
@@ -58,10 +66,19 @@
             <option value="manual" {{ request('provider') === 'manual' ? 'selected' : '' }}>Manual</option>
         </select>
 
-        <label for="voucher_code">Voucher code:</label>
+        <label for="voucher_code">Voucher code (exact):</label>
         <input type="text" name="voucher_code" id="voucher_code" value="{{ request('voucher_code') }}" style="width: 120px;">
 
-        <label for="minutes">Last minutes:</label>
+        <label for="range">Date range:</label>
+        <select name="range" id="range">
+            <option value="" {{ request('range') === null || request('range') === '' ? 'selected' : '' }}>Any time</option>
+            <option value="today" {{ request('range') === 'today' ? 'selected' : '' }}>Today</option>
+            <option value="7" {{ request('range') === '7' ? 'selected' : '' }}>Last 7 days</option>
+            <option value="30" {{ request('range') === '30' ? 'selected' : '' }}>Last 30 days</option>
+            <option value="all" {{ request('range') === 'all' ? 'selected' : '' }}>All time</option>
+        </select>
+
+        <label for="minutes">Or last minutes:</label>
         <input type="number" name="minutes" id="minutes" value="{{ request('minutes') }}" style="width: 80px;">
 
         <button type="submit">Filter</button>
